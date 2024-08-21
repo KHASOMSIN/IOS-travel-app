@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="22505" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="22504"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner"/>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <tableViewCell contentMode="scaleToFill" selectionStyle="default" indentationWidth="10" id="KGk-i7-Jjw" customClass="ProfileTableViewCell" customModule="Tavel" customModuleProvider="target">
+            <rect key="frame" x="0.0" y="0.0" width="370" height="100"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+            <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" tableViewCell="KGk-i7-Jjw" id="H2p-sc-9uM">
+                <rect key="frame" x="0.0" y="0.0" width="370" height="100"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="PVy-ox-94p">
+                        <rect key="frame" x="20" y="5" width="330" height="90"/>
+                        <subviews>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="M0d-CC-BYe">
+                                <rect key="frame" x="10" y="7.6666666666666643" width="75" height="75"/>
+                                <subviews>
+                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="AccountProfiles" translatesAutoresizingMaskIntoConstraints="NO" id="iVu-1o-nPs">
+                                        <rect key="frame" x="5" y="5" width="65" height="65"/>
+                                        <userDefinedRuntimeAttributes>
+                                            <userDefinedRuntimeAttribute type="number" keyPath="cornerRaduis">
+                                                <real key="value" value="32.5"/>
+                                            </userDefinedRuntimeAttribute>
+                                        </userDefinedRuntimeAttributes>
+                                    </imageView>
+                                </subviews>
+                                <color key="backgroundColor" systemColor="tintColor"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="75" id="3bO-9m-2CH"/>
+                                    <constraint firstAttribute="bottom" secondItem="iVu-1o-nPs" secondAttribute="bottom" constant="5" id="N1Q-E0-T3T"/>
+                                    <constraint firstAttribute="trailing" secondItem="iVu-1o-nPs" secondAttribute="trailing" constant="5" id="NVQ-ef-83f"/>
+                                    <constraint firstAttribute="height" constant="75" id="YJm-On-9JO"/>
+                                    <constraint firstItem="iVu-1o-nPs" firstAttribute="top" secondItem="M0d-CC-BYe" secondAttribute="top" constant="5" id="wxq-Ob-xlN"/>
+                                    <constraint firstItem="iVu-1o-nPs" firstAttribute="leading" secondItem="M0d-CC-BYe" secondAttribute="leading" constant="5" id="yEf-q2-dpz"/>
+                                </constraints>
+                                <userDefinedRuntimeAttributes>
+                                    <userDefinedRuntimeAttribute type="number" keyPath="cornerRaduis">
+                                        <real key="value" value="37.5"/>
+                                    </userDefinedRuntimeAttribute>
+                                </userDefinedRuntimeAttributes>
+                            </view>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Kha Sin" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="JnK-ri-3xR">
+                                <rect key="frame" x="105" y="33" width="205" height="24"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="20"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                        </subviews>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <constraints>
+                            <constraint firstAttribute="trailing" secondItem="JnK-ri-3xR" secondAttribute="trailing" constant="20" id="C8A-nv-YP9"/>
+                            <constraint firstItem="M0d-CC-BYe" firstAttribute="centerY" secondItem="PVy-ox-94p" secondAttribute="centerY" id="HWf-Aw-tOa"/>
+                            <constraint firstItem="JnK-ri-3xR" firstAttribute="leading" secondItem="M0d-CC-BYe" secondAttribute="trailing" constant="20" id="JOm-OP-c1o"/>
+                            <constraint firstItem="JnK-ri-3xR" firstAttribute="centerY" secondItem="PVy-ox-94p" secondAttribute="centerY" id="Vi0-iT-BlG"/>
+                            <constraint firstItem="M0d-CC-BYe" firstAttribute="leading" secondItem="PVy-ox-94p" secondAttribute="leading" constant="10" id="uq3-zj-B9c"/>
+                        </constraints>
+                        <userDefinedRuntimeAttributes>
+                            <userDefinedRuntimeAttribute type="number" keyPath="cornerRaduis">
+                                <real key="value" value="45"/>
+                            </userDefinedRuntimeAttribute>
+                        </userDefinedRuntimeAttributes>
+                    </view>
+                </subviews>
+                <color key="backgroundColor" red="0.76862745099999996" green="0.76862745099999996" blue="0.76862745099999996" alpha="1" colorSpace="calibratedRGB"/>
+                <constraints>
+                    <constraint firstAttribute="trailing" secondItem="PVy-ox-94p" secondAttribute="trailing" constant="20" id="0iA-qF-ocM"/>
+                    <constraint firstAttribute="bottom" secondItem="PVy-ox-94p" secondAttribute="bottom" constant="5" id="MsX-xg-von"/>
+                    <constraint firstItem="PVy-ox-94p" firstAttribute="leading" secondItem="H2p-sc-9uM" secondAttribute="leading" constant="20" id="Y2D-HM-S5T"/>
+                    <constraint firstItem="PVy-ox-94p" firstAttribute="top" secondItem="H2p-sc-9uM" secondAttribute="top" constant="5" id="yrH-6Z-t83"/>
+                </constraints>
+            </tableViewCellContentView>
+            <viewLayoutGuide key="safeArea" id="njF-e1-oar"/>
+            <connections>
+                <outlet property="nameLabel" destination="JnK-ri-3xR" id="jve-8F-aDt"/>
+                <outlet property="profileImage" destination="iVu-1o-nPs" id="PgU-dz-bbO"/>
+                <outlet property="viewBackground" destination="PVy-ox-94p" id="tOM-ZN-eae"/>
+            </connections>
+            <point key="canvasLocation" x="-48.854961832061065" y="-0.70422535211267612"/>
+        </tableViewCell>
+    </objects>
+    <resources>
+        <image name="AccountProfiles" width="320" height="320"/>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+        <systemColor name="tintColor">
+            <color red="0.0" green="0.47843137250000001" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
+    </resources>
+</document>

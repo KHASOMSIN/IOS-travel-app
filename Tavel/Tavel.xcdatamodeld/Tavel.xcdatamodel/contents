@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22522" systemVersion="22G720" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="PlanDetails" representedClassName="PlanDetails" syncable="YES">
+        <attribute name="amount" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="itemId" attributeType="String"/>
+        <attribute name="prices" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="titleItems" optional="YES" attributeType="String"/>
+        <relationship name="travelPlan" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="TravelPlan" inverseName="planDetail" inverseEntity="TravelPlan"/>
+    </entity>
+    <entity name="SavedTrip" representedClassName="SavedTrip" syncable="YES">
+        <attribute name="isSavedTrip" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="savedDescription" optional="YES" attributeType="String"/>
+        <attribute name="savedImage" optional="YES" attributeType="Binary"/>
+        <attribute name="savedTitle" optional="YES" attributeType="String"/>
+    </entity>
+    <entity name="TravelPlan" representedClassName="TravelPlan" syncable="YES">
+        <attribute name="date" optional="YES" attributeType="String"/>
+        <attribute name="placeName" optional="YES" attributeType="String"/>
+        <attribute name="planID" attributeType="String"/>
+        <attribute name="planName" optional="YES" attributeType="String"/>
+        <attribute name="tripMember" optional="YES" attributeType="String"/>
+        <relationship name="planDetail" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="PlanDetails" inverseName="travelPlan" inverseEntity="PlanDetails"/>
+        <uniquenessConstraints>
+            <uniquenessConstraint>
+                <constraint value="planName"/>
+            </uniquenessConstraint>
+        </uniquenessConstraints>
+    </entity>
+</model>

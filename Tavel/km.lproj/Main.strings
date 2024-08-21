@@ -1,0 +1,21 @@
+
+/* Class = "UIButton"; configuration.title = "Next"; ObjectID = "6Zy-3a-2yp"; */
+"6Zy-3a-2yp.configuration.title" = "Next";
+
+/* Class = "UIButton"; normalTitle = "Button"; ObjectID = "6Zy-3a-2yp"; */
+"6Zy-3a-2yp.normalTitle" = "Button";
+
+/* Class = "UILabel"; text = "Kha Sin"; ObjectID = "era-E5-rX5"; */
+"era-E5-rX5.text" = "Kha Sin";
+
+/* Class = "UILabel"; text = "Email"; ObjectID = "jxG-Dv-MQM"; */
+"jxG-Dv-MQM.text" = "Email";
+
+/* Class = "UILabel"; text = "khasomsin@gmail.como"; ObjectID = "rpo-r5-tDn"; */
+"rpo-r5-tDn.text" = "khasomsin@gmail.como";
+
+/* Class = "UILabel"; text = "Label"; ObjectID = "uhZ-aZ-8YT"; */
+"uhZ-aZ-8YT.text" = "Label";
+
+/* Class = "UILabel"; text = "Explore In Cambodia"; ObjectID = "z0n-5m-e9v"; */
+"z0n-5m-e9v.text" = "Explore In Cambodia";

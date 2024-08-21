@@ -1,0 +1,33 @@
+//
+//  Localizable.strings
+//  Tavel
+//
+//  Created by user245540 on 8/16/24.
+//
+// English
+
+
+"Welcome" = "Welcome";
+
+/* Localizable.strings (English) */
+"Welcome" = "Welcome";
+"Change Language" = "Change Language";
+"Change Password" = "Change Password";
+"Logout" = "Logout";
+
+"update_title" = "Are you sure you want to log out?";
+"update_message" = "Your changes will be lost if you log out.";
+"update_cancel" = "Cancel";
+"update_confirm" = "Log Out";
+
+"Old Password" = "Old Password";
+"New Password" = "New Password";
+"Confirm Password" = "Confirm Password";
+"Change Password" = "Change Password";
+
+"Discover Places" = "Discover Places";
+"All Places" = "All Places";
+
+"Discover Provinces" = "Discover Provinces";
+"Provinces" = "Provinces";
+

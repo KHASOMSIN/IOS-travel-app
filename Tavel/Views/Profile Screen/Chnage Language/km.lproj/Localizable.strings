@@ -1,0 +1,36 @@
+
+//  Localizable.strings
+//  Tavel
+//
+//  Created by user245540 on 8/16/24.
+//
+// khmer
+
+
+
+"Welcome" = "សូមស្វាគមន៍";
+
+
+/* Localizable.strings (Khmer) */
+"Welcome" = "សូមស្វាគមន៍";
+"Change Language" = "ផ្លាស់ប្តូរភាសា";
+"Change Password" = "ផ្លាស់ប្តូរពាក្យសម្ងាត់";
+"Logout" = "ចាកចេញ";
+
+"update_title" = "តើអ្នកប្រាកដហើយឬទេថាអ្នកចង់ចេញពី?";
+"update_message" = "ការផ្លាស់ប្តូររបស់អ្នកនឹងត្រូវបាត់បង់ប្រសិនបើអ្នកចេញពីរបៀប។";
+"update_cancel" = "មិនចាកចេញ";
+"update_confirm" = "ចាកចេញ";
+
+
+"Old Password" = "ពាក្យសម្ងាត់ចាស់";
+"New Password" = "ពាក្យសម្ងាត់ថ្មី";
+"Confirm Password" = "បញ្ជាក់ពាក្យសម្ងាត់";
+"Change Password" = "ផ្លាស់ប្តូរពាក្យសម្ងាត់";
+
+"Discover Places" = "ស្វែងរកកន្លែង";
+"All Places" = "កន្លែងទាំងអស់";
+
+"Discover Provinces" = "ស្វែងរកខេត្ត";
+"Provinces" = "ខេត្ត";
+
