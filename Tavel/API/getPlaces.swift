@@ -1,17 +1,16 @@
 //
-//  getProvinces.swift
+//  getPlaces.swift
 //  Tavel
 //
-//  Created by user245540 on 8/22/24.
+//  Created by user245548 on 8/22/24.
 //
 
 import Alamofire
 
-struct APIClient {
-    static let shared = APIClient()
-    
+struct APIPlaces {
+    static let shared = APIPlaces()
     func fetchProvinces(completion: @escaping ([ProvincesModel]?) -> Void) {
-        let url = "\(urlLocal)travel/provinces"
+        let url = "\(urlLocal)travel/places"
         
         AF.request(url).responseDecodable(of: APIResponse.self) { response in
             switch response.result {

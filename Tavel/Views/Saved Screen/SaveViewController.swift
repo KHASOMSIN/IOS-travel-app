@@ -5,7 +5,7 @@ class SaveViewController: UIViewController {
 
     let savedScrollView = UIScrollView()
     let contenView = UIView()
-    var bookmarkedTrips: [PopularPlace] = []
+    var bookmarkedTrips: [Pupular] = []
 
     // Collection View
     let collectionView: UICollectionView = {
@@ -135,13 +135,13 @@ extension SaveViewController: UICollectionViewDataSource {
         return cell
     }
 
-    private func handleUnbookmarkAction(for trip: PopularPlace, at indexPath: IndexPath) {
+    private func handleUnbookmarkAction(for trip: Pupular, at indexPath: IndexPath) {
         guard indexPath.row < bookmarkedTrips.count else {
             print("Index out of range. Row: \(indexPath.row), Count: \(bookmarkedTrips.count)")
             return
         }
 
-        BookmarkManager.shared.removeBookmark(byId: trip.id)
+        BookmarkManager.shared.removeBookmark(byId: "\(trip.placeId)")
         bookmarkedTrips.remove(at: indexPath.row)
 
         collectionView.performBatchUpdates({

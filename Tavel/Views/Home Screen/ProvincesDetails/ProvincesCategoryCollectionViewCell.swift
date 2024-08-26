@@ -46,8 +46,10 @@ class ProvincesCategoryCollectionViewCell: UICollectionViewCell {
         }
     }
     
-    func configure(with model: ProvincesCategory) {
-        titleLabel.text = model.title
-        imageView.image = UIImage(named: model.imageView) ?? UIImage(named: "defaultImage") // Fallback image
+    func configure(with category: Category) {
+            titleLabel.text = category.categoryTitle
+            if let url = URL(string: category.imageIcon) {
+                imageView.kf.setImage(with: url)
+        }
     }
 }

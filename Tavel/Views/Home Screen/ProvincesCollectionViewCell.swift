@@ -1,8 +1,11 @@
 import UIKit
 import SnapKit
+import Kingfisher
+import Localize_Swift
 
 class ProvincesCollectionViewCell: UICollectionViewCell {
-    let imageView: UIImageView = {
+//    var provinceId: Int?
+    var imageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
@@ -16,7 +19,7 @@ class ProvincesCollectionViewCell: UICollectionViewCell {
         return view
     }()
     
-    let titleLabel: UILabel = {
+    var titleLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.boldSystemFont(ofSize: 18)
         label.textAlignment = .center
@@ -48,8 +51,12 @@ class ProvincesCollectionViewCell: UICollectionViewCell {
         applyShadow()
     }
     
-    func configure(with trip: ProvincesModel) {
-        titleLabel.text = trip.title
+    func configure(with province: ProvincesModel) {
+//        provinceId = province.provinceId
+        titleLabel.text = province.provinceName.localized()
+        if let url = URL(string: province.provinceImage) {
+            imageView.kf.setImage(with: url, placeholder: UIImage(named: "placeholder"))
+        }
     }
     
     required init?(coder: NSCoder) {

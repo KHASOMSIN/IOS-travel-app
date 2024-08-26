@@ -89,17 +89,16 @@ class FirstCollectionViewCell: UICollectionViewCell {
         }
     }
 
-    func configure(with trip: PopularPlace) {
-        titleLabel.text = trip.title
-        descriptionLabel.text = trip.description
-
-        // Set the image to display if available
-        if let imageName = trip.imageName {
-            imageView.image = UIImage(named: imageName)
+    func configure(with place: Pupular) {
+        titleLabel.text = place.placeName
+        descriptionLabel.text = place.description
+        if let url = URL(string: place.imageUrl) {
+            imageView.kf.setImage(with: url)
+        } else {
+            imageView.image = nil // Optionally set a placeholder image here
         }
-
         // Check the bookmark status and update the button image
-        let isBookmarked = BookmarkManager.shared.isBookmarked(id: trip.id)
+        let isBookmarked = BookmarkManager.shared.isBookmarked(id: "\(place.placeId)")
         let imageName = isBookmarked ? "Heart_selected" : "saved1"
         let image = UIImage(named: imageName)?.resize(to: CGSize(width: 24.0, height: 24.0))
         saveButton.setImage(image, for: .normal)

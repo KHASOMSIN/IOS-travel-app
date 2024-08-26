@@ -1,5 +1,6 @@
 import UIKit
 import SnapKit
+import Kingfisher
 class TripCollectionViewCell: UICollectionViewCell {
     let imageView = UIImageView()
     let Viewbackground = UIView()
@@ -30,7 +31,12 @@ class TripCollectionViewCell: UICollectionViewCell {
         }
     }
     
-    func configure(with model: TripModel) {
-        imageView.image = UIImage(named: model.imageName!)
+    func configure(with model: ImageData) {
+            if let url = URL(string: model.imageUrl) {
+                imageView.kf.setImage(with: url)
+            } else {
+                imageView.image = nil // Optionally handle invalid URL
+                print("no image")
+            }
     }
 }

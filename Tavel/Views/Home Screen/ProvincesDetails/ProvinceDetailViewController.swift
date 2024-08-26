@@ -2,6 +2,7 @@ import UIKit
 import SnapKit
 import MapKit
 import CoreLocation
+import Alamofire
 
 class ProvinceDetailViewController: UIViewController, UIScrollViewDelegate, UISearchBarDelegate  {
     
@@ -29,14 +30,22 @@ class ProvinceDetailViewController: UIViewController, UIScrollViewDelegate, UISe
     var reviewCollectionView: UICollectionView!
     let reviewLayoutVIew = UICollectionViewFlowLayout()
     var mapView = MKMapView()
-    let locationManager = CLLocationManager()
+    var locationManager = CLLocationManager()
+    var destinationCoordinate: CLLocationCoordinate2D?
     let kilometers = UILabel()
     let Estimated  = UILabel()
     
-    let latitude: CLLocationDegrees = 37.7770109
-    let longitude: CLLocationDegrees = -122.3923233
-    let locationame = "Kompong Speu"
     
+    var provincId: Int?
+    var provinceImages: [ProvinceImage] = []
+    
+    var locations: [Location] = []
+    var targetProvinceId = 0
+  
+    var latitude: CLLocationDegrees = 0
+    var longitude: CLLocationDegrees = 0
+    var longLabel = UILabel()
+    var latLabel = UILabel()
     
     let searchTextField = CustomTextField()
     var isSearching = false
@@ -44,23 +53,8 @@ class ProvinceDetailViewController: UIViewController, UIScrollViewDelegate, UISe
     let reviewPresentation = HalfModalTransitioningDelegate()
     var galleryCollectionViewHeightConstraint: NSLayoutConstraint!
     
-    var gallery: [ProvincesGalleryModel] = [
-    ProvincesGalleryModel(galleryName: "battambang"),
-    ProvincesGalleryModel(galleryName: "battambang"),
-    ProvincesGalleryModel(galleryName: "battambang"),
-    ProvincesGalleryModel(galleryName: "battambang"),
-    ]
-    
-    let categorie: [ProvincesCategory] = [
-        ProvincesCategory.init(title: "Mountain", imageView: "battambang"),
-        ProvincesCategory.init(title: "Mountain", imageView: "battambang"),
-        ProvincesCategory.init(title: "Mountain", imageView: "battambang"),
-    ]
-    
-    let places:[placeModel] = [
-        placeModel(title: "Angkor Wat", locationIconName: "Location", locationName: "Battambang", detail: "Angkor is one of the most important archaeological sites in South-East Asia. Stretching over some 400 km2, including forested area, Angkor Archaeological Park contains the magnificent remains of the different capitals of the Khmer Empire, from the 9th to the 15th century. They include the famous Temple of Angkor Wat and, at Angkor Thom, the Bayon Temple with its countless sculptural decorations. UNESCO has set up a wide-ranging programme to safeguard this symbolic site and its surroundings.", galleryName: "battambang"),
-        placeModel(title: "Angkor Wat", locationIconName: "Location", locationName: "Battambang", detail: "Angkor is one of the most important archaeological sites in South-East Asia. Stretching over some 400 km2, including forested area, Angkor Archaeological Park contains the magnificent remains of the different capitals of the Khmer Empire, from the 9th to the 15th century. They include the famous Temple of Angkor Wat and, at Angkor Thom, the Bayon Temple with its countless sculptural decorations. UNESCO has set up a wide-ranging programme to safeguard this symbolic site and its surroundings.", galleryName: "battambang")
-    ]
+    private var category: [Category] = []
+    private var place: [Pupular] = []
     
     let rate:[ReviewModel] = [
         ReviewModel(profileImageName: "AccountProfiles", name: "Kha Sin", rating: 5, createdDate: "20/20/2001", reviewDetail: "Angkor is one of the most important archaeological sites in South-East Asia. Stretching over some 400 km2, including forested area, Angkor Archaeological"),
@@ -83,7 +77,7 @@ class ProvinceDetailViewController: UIViewController, UIScrollViewDelegate, UISe
         setupPlace()
         setupReview()
         setupLocationView()
-        
+                
         setupLocationManager() //check user curren Location
         
         setupCollectionView(tripStartCollectionView)
@@ -91,14 +85,184 @@ class ProvinceDetailViewController: UIViewController, UIScrollViewDelegate, UISe
         setupCollectionView(placeCollectionView)
         setupCollectionView(reviewCollectionView)
         
+        
+        
         viewContainer.addSubview(customSegmentedControl)
         customSegmentedControl.addTarget(self, action: #selector(segmentChanged), for: .valueChanged)
         
         // Show the first view by default
         segmentChanged(sender: customSegmentedControl)
         
-        
+        if let id = provincId {
+            fetchProvinceImages(for: id)
+            targetProvinceId = id
+            fetchLocation(provinceId: id)
+            fetchAndDisplayProvinceData(by: id)
+            fetchCategories(for: id)
+            fetchPlaces(for: id)
+            
+        }
     }
+
+    func fetchPlaces(for provinceId: Int) {
+        let url = "\(urlTravel)travel/places/byprovince/\(provinceId)" // Update with the correct endpoint
+
+        AF.request(url).responseDecodable(of: [Pupular].self) { response in
+            switch response.result {
+            case .success(let places):
+                self.place = places
+                DispatchQueue.main.async {
+                    self.placeCollectionView.reloadData()
+                }
+            case .failure(let error):
+                print("Error fetching places: \(error)")
+            }
+        }
+    }
+
+    
+    func fetchCategories(for provinceId: Int) {
+        let url = "\(urlLocal)travel/categories/province/\(provinceId)"
+        
+        AF.request(url).responseDecodable(of: CategoriesResponse.self) { response in
+            switch response.result {
+            case .success(let categoriesResponse):
+                self.category = categoriesResponse.categories
+                DispatchQueue.main.async {
+                    self.categoryCollectionView.reloadData()
+                }
+            case .failure(let error):
+                print("Error fetching categories: \(error)")
+            }
+        }
+    }
+
+    private func fetchAndDisplayProvinceData(by id: Int) {
+         fetchProvinceData(by: id) { [weak self] result in
+             switch result {
+             case .success(let province):
+                 self?.updateUI(with: province)
+             case .failure(let error):
+                 print("Error fetching province data: \(error.localizedDescription)")
+                 // Optionally, display an alert or error message to the user
+             }
+         }
+     }
+     
+     private func updateUI(with province: Province) {
+         placeNameLbl.text = province.detailTitle
+         descriptionTextLbl.text = province.description
+         
+         if let urlString = province.galleryPhotos, let url = URL(string: urlString) {
+             // Use Kingfisher to load the image
+             imageView.kf.setImage(with: url) { result in
+                 switch result {
+                 case .success(let value):
+                     print("Image loaded successfully")
+                     self.imageView.image = value.image
+                 case .failure(let error):
+                     print("Error loading image: \(error.localizedDescription)")
+                     // Handle the error (e.g., show a placeholder image)
+                     self.imageView.image = UIImage(named: "placeholder") // Set a placeholder image
+                 }
+             }
+         } else {
+             // Handle the case where galleryPhotos is nil or invalid
+             self.imageView.image = UIImage(named: "placeholder") // Set a placeholder image
+         }
+     }
+
+    @IBAction func mapViewTapped() {
+         guard let latitude = destinationCoordinate?.latitude,
+               let longitude = destinationCoordinate?.longitude else {
+             print("Destination coordinates are not set.")
+             return
+         }
+         
+         let urlString = "comgooglemaps://?daddr=\(latitude),\(longitude)&directionsmode=driving"
+         if let url = URL(string: urlString), UIApplication.shared.canOpenURL(url) {
+             UIApplication.shared.open(url, options: [:], completionHandler: nil)
+         } else {
+             // Fallback to Apple Maps if Google Maps is not installed
+             let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+             let mapItem = MKMapItem(placemark: MKPlacemark(coordinate: coordinate))
+             mapItem.name = locationLabel.text
+             mapItem.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving])
+         }
+     }
+     
+     func fetchLocation(provinceId: Int) {
+         let apiUrl = "\(urlTravel)/travel/locations/province/\(provinceId)"
+         
+         AF.request(apiUrl, method: .get).responseDecodable(of: [Location].self) { response in
+             switch response.result {
+             case .success(let locations):
+                 if let location = locations.first {
+                     self.handleLocation(location)
+                     self.locationLabel.text = "\(location.locationName)"
+                     self.navigationItem.title = "\(location.locationName)"
+                 }
+             case .failure(let error):
+                 print("Error fetching location: \(error.localizedDescription)")
+             }
+         }
+     }
+     
+     private func handleLocation(_ location: Location) {
+         guard let latitude = Double(location.latitude),
+               let longitude = Double(location.longitude) else {
+             print("Invalid latitude or longitude")
+             return
+         }
+         
+         destinationCoordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+         displayLocationOnMap(latitude: latitude, longitude: longitude, name: location.locationName)
+         calculateAndDisplayDistanceAndTime()
+     }
+     
+     private func displayLocationOnMap(latitude: Double, longitude: Double, name: String) {
+         let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+         let annotation = MKPointAnnotation()
+         annotation.coordinate = coordinate
+         annotation.title = name
+         
+         mapView.addAnnotation(annotation)
+         
+         let region = MKCoordinateRegion(center: coordinate, latitudinalMeters: 1000, longitudinalMeters: 1000)
+         mapView.setRegion(region, animated: true)
+     }
+     
+     private func setupLocationManager() {
+         locationManager = CLLocationManager()
+         locationManager.delegate = self
+         locationManager.requestWhenInUseAuthorization()
+         locationManager.startUpdatingLocation()
+     }
+
+
+    func fetchProvinceImages(for id: Int) {
+        APIManager.shared.fetchProvinceImages(for: id) { [weak self] result in
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success(let images):
+                        self?.provinceImages = images
+                        self?.tripStartCollectionView.reloadData()
+                    case .failure(let error):
+                        self?.showError(error)
+                    }
+                }
+            }
+        } 
+    
+
+    
+    func showError(_ error: APIError) {
+         let alert = UIAlertController(title: "Error", message: error.localizedDescription, preferredStyle: .alert)
+         alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
+         present(alert, animated: true, completion: nil)
+    }
+
+    
     func setupCollectionView (_ collectionView: UICollectionView) {
         collectionView.dataSource = self
         collectionView.delegate = self
@@ -171,7 +335,8 @@ class ProvinceDetailViewController: UIViewController, UIScrollViewDelegate, UISe
     // MARK: create collection view
     
     func createViews() {
-        navigationItem.title = "Battambang Province"
+
+        
         view.backgroundColor = .white
         scrollView = UIScrollView()
         view.addSubview(scrollView)
@@ -192,7 +357,7 @@ class ProvinceDetailViewController: UIViewController, UIScrollViewDelegate, UISe
         
         imageView = UIImageView()
         firstView.addSubview(imageView)
-        imageView.image = UIImage(named: "battambang")
+//        imageView.image = UIImage(named: "battambang")
         imageView.contentMode = .scaleAspectFill
         
         // View Container
@@ -221,7 +386,7 @@ class ProvinceDetailViewController: UIViewController, UIScrollViewDelegate, UISe
         // location label
         locationLabel = UILabel()
         locationLabel.font = UIFont.systemFont(ofSize: 15)
-        locationLabel.text = "Kompong Speu"
+//        locationLabel.text = locationLabel.text
         locationLabel.tintColor = .gray
         viewContainer.addSubview(locationLabel)
         
@@ -408,7 +573,7 @@ class ProvinceDetailViewController: UIViewController, UIScrollViewDelegate, UISe
         descriptionTextLbl = UILabel()
         descriptionTextLbl.numberOfLines = 0
         descriptionTextLbl.textAlignment = .left
-        descriptionTextLbl.text = "   Museum focusing on local indigenous people & culture, with all tools, clothing & artifacts on display. Don bosco to museum.Museum focusing on local indigenous people & culture, with all tools, clothing & artifacts on display. Don bosco to museum.Museum focusing on local indigenous people & culture, with all tools, clothing & artifacts on display. Don bosco to museum.Museum focusing on local indigenous people & culture, with all tools, clothing & artifacts on display. Don bosco to museum."
+        
         descriptionTextLbl.setLineSpacing(lineSpacing: 7.0)
         descriptionTextLbl.font = UIFont.systemFont(ofSize: 13)
         
@@ -549,7 +714,7 @@ class ProvinceDetailViewController: UIViewController, UIScrollViewDelegate, UISe
         addReviewBtn.tintColor = .blue
         addReviewBtn.addTarget(self, action: #selector(addReviewTapped), for: .touchUpInside)
         reviewView.addSubview(addReviewBtn)
-        
+        // Use the updated properties as needed
         reviewLayoutVIew.scrollDirection = .vertical
         reviewLayoutVIew.minimumLineSpacing = 10
         reviewLayoutVIew.minimumInteritemSpacing = 10
@@ -619,7 +784,6 @@ class ProvinceDetailViewController: UIViewController, UIScrollViewDelegate, UISe
             make.left.equalTo(icon1.snp.right).offset(10)
             make.right.equalTo(locationView.snp.right).offset(0)
         }
-    
         
         let icon2 = UIImageView()
         locationView.addSubview(icon2)
@@ -661,11 +825,11 @@ extension ProvinceDetailViewController: UICollectionViewDataSource {
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         if collectionView == tripStartCollectionView {
-            return gallery.count
+            return provinceImages.count
         } else if collectionView == categoryCollectionView {
-            return categorie.count
+            return category.count
         } else if collectionView == placeCollectionView {
-            return places.count
+            return place.count
         }else {
             return rate.count
         }
@@ -674,18 +838,20 @@ extension ProvinceDetailViewController: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         if collectionView == tripStartCollectionView {
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "ProvincesGalleryCollectionViewCell", for: indexPath) as! ProvincesGalleryCollectionViewCell
-            let galerys = gallery[indexPath.item]
-            cell.configure(with: galerys)
+            let img = provinceImages[indexPath.item]
+            cell.configure(with: img)
             return cell
         } else if collectionView == categoryCollectionView {
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "ProvincesCategoryCollectionViewCell", for: indexPath) as! ProvincesCategoryCollectionViewCell
-            let category = categorie[indexPath.item]
+            let category = category[indexPath.item]
             cell.configure(with: category)
             return cell
         } else if collectionView == placeCollectionView {
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PlacesCollectionViewCell", for: indexPath) as! PlacesCollectionViewCell
-            let category = places[indexPath.item]
-            cell.configure(with: category)
+            let place = place[indexPath.item]
+            
+            cell.configure(with: place)
+            
             return cell
         }else {
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "ReviewCollectionViewCell", for: indexPath) as! ReviewCollectionViewCell
@@ -697,6 +863,18 @@ extension ProvinceDetailViewController: UICollectionViewDataSource {
 }
 
 extension ProvinceDetailViewController: UICollectionViewDelegateFlowLayout {
+    
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        if collectionView == placeCollectionView {
+            let selected = place[indexPath.item]
+            let detailViewController = PopularDetailViewController(selectedPlace: selected)
+            detailViewController.selectedPlace? = selected
+            navigationController?.pushViewController(detailViewController, animated: true)
+        }
+        
+        print("selected")
+    }
+    
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         if collectionView == tripStartCollectionView {
             return CGSize(width: collectionView.frame.width, height: 320)

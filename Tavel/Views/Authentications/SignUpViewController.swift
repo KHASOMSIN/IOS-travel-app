@@ -8,18 +8,6 @@
 import UIKit
 import Alamofire
 
-struct RegistrationRequest: Encodable {
-    let fullname: String
-    let email: String
-    let password: String
-}
-
-// Model for registration response
-// Model for registration response
-struct RegistrationResponse: Decodable {
-    let message: String
-}
-
 class SignUpViewController: UIViewController {
     
     let scrollView = UIScrollView()
@@ -40,7 +28,8 @@ class SignUpViewController: UIViewController {
     let questionLabel = UILabel()
     let loginLabel = UILabel()
     let horizontalStackView = UIStackView()
-    let activityIndicator = UIActivityIndicatorView()
+    
+    var loadingVC: UIViewController!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -313,10 +302,10 @@ class SignUpViewController: UIViewController {
         }
         
         // Create the registration request
-        let registrationRequest = RegistrationRequest(fullname: fullname, email: email, password: password)
+        loadingVC = LoadingViewController()
+        present(loadingVC, animated: true)
         
-        // Call the API to register
-        registerUser(with: registrationRequest)
+       registerUser(fullname: fullname, email: email, password: password)
         DataManager.shared.email = email
     }
     
@@ -328,41 +317,44 @@ class SignUpViewController: UIViewController {
     
     
     // MARK: functions
-    
     func showAlert(title: String, message: String, completion: (() -> Void)? = nil) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in
-            completion?()
-        })
+        let okAction = UIAlertAction(title: "OK", style: .default) { _ in
+            completion?() // This will execute the completion block if it's provided
+        }
+        alert.addAction(okAction)
         present(alert, animated: true, completion: nil)
     }
     
-    private func registerUser(with request: RegistrationRequest) {
-        // Show activity indicator
-        activityIndicator.startAnimating()
-        
-        let url = "https://travel-flame-ten.vercel.app/auth/register" // Replace with your actual endpoint
-        let headers: HTTPHeaders = [
-            "Content-Type": "application/json"
+    func registerUser(fullname: String, email: String, password: String) {
+        let url = "\(urlLocal)auth/register"
+
+        let parameters: [String: Any] = [
+            "fullname": fullname,
+            "email": email,
+            "password": password
         ]
-        
-        AF.request(url, method: .post, parameters: request, encoder: JSONParameterEncoder.default, headers: headers).responseDecodable(of: RegistrationResponse.self) { response in
-            // Stop activity indicator
-            self.activityIndicator.stopAnimating()
-            
-            switch response.result {
-            case .success(let registrationResponse):
-                // Since the response only has a message, use it directly
-                self.showAlert(title: "Success", message: registrationResponse.message) {
-                    // Perform further actions after successful registration, if needed
-                    let viewController = OTPverifiedViewController()
-                    self.present(viewController, animated: true)
-//                    DataManager.shared.email = self.emailTextField.text
+        AF.request(url, method: .post, parameters: parameters, encoding: JSONEncoding.default)
+            .responseData { response in
+                self.loadingVC.dismiss(animated: true) {
+                    switch response.result {
+                    case .success(let data):
+                        do {
+                            // Decode the response into the RegisterResponse struct
+                            let decoder = JSONDecoder()
+                            let registerResponse = try decoder.decode(RegisterResponse.self, from: data)
+                            print(registerResponse.message) // Handle the success message
+                            let viewController = OTPverifiedViewController()
+                            viewController.modalPresentationStyle = .fullScreen
+                            self.present(viewController, animated: true)
+                        } catch {
+                            print("Failed to decode JSON: \(error)")
+                        }
+                    case .failure(let error):
+                        print("Request failed with error: \(error)")
+                        self.showAlert(title: "Register failed", message: "Something was wrong!")
+                    }
                 }
-            case .failure(let error):
-                // Handle request failure
-                self.showAlert(title: "Error", message: "Registration failed: \(error.localizedDescription)")
             }
         }
-    }
 }

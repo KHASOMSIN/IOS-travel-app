@@ -1,19 +1,9 @@
 import UIKit
 import Alamofire
 
-// Define the struct for OTP response
-struct OTPResponse: Codable {
-    let status: Int
-    let message: String
-    let data: OTPData?
-}
-
-// Define the struct for OTP data, if needed
-struct OTPData: Codable {
-    let message: String
-}
-
 class OTPverifiedViewController: UIViewController, UITextFieldDelegate {
+    
+    // UI Components
     let mainView = UIView()
     var otpTextField1 = UITextField()
     var otpTextField2 = UITextField()
@@ -21,9 +11,11 @@ class OTPverifiedViewController: UIViewController, UITextFieldDelegate {
     var otpTextField4 = UITextField()
     let numberLoading = UILabel()
     let resendCode = UILabel()
-    let activityIndicator = UIActivityIndicatorView()
-    let email = DataManager.shared.email ?? ""
+    
+    let email = DataManager.shared.email ?? "nil"
+    var loadingViewController: UIViewController!
 
+    // Timer Properties
     var timer: Timer?
     var countdownTime: Int = 300
 
@@ -37,7 +29,7 @@ class OTPverifiedViewController: UIViewController, UITextFieldDelegate {
         timer?.invalidate()
     }
 
-    // Countdown Timer Methods
+    // MARK: - Countdown Timer Methods
     func startCountdown() {
         timer = Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(updateCountdown), userInfo: nil, repeats: true)
     }
@@ -63,11 +55,11 @@ class OTPverifiedViewController: UIViewController, UITextFieldDelegate {
         numberLoading.text = "Code expired!"
     }
 
-    // Setup UI for the view controller
+    // MARK: - Setup UI
     func setupUI() {
         view.backgroundColor = UIColor(hex: "#F5F7F8")
 
-        // Main view setup
+        // Main View Setup
         mainView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(mainView)
         NSLayoutConstraint.activate([
@@ -77,30 +69,11 @@ class OTPverifiedViewController: UIViewController, UITextFieldDelegate {
             mainView.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor)
         ])
 
-        // Logo image setup
-        let logoImage = UIImageView(image: UIImage(named: "CheckYourEmail"))
-        logoImage.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            logoImage.heightAnchor.constraint(equalToConstant: 85),
-            logoImage.widthAnchor.constraint(equalToConstant: 55.41)
-        ])
-
-        // Title label setup
-        let titleLabel = UILabel()
-        titleLabel.text = "Check Your Email"
-        titleLabel.font = UIFont.boldSystemFont(ofSize: 24)
-        titleLabel.textAlignment = .center
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-
-        // Detail label setup
-        let detailLabel = UILabel()
-        detailLabel.font = UIFont.systemFont(ofSize: 17)
-        detailLabel.textAlignment = .center
-        detailLabel.numberOfLines = 0
-        detailLabel.text = "We’ve sent the code to the email on your device"
-        detailLabel.translatesAutoresizingMaskIntoConstraints = false
-
-        // Stack view for logo, title, and detail labels
+        // Stack View for Logo, Title, and Detail Labels
+        let logoImage = createLogoImageView()
+        let titleLabel = createLabel(text: "Check Your Email", fontSize: 24, isBold: true, alignment: .center)
+        let detailLabel = createLabel(text: "We’ve sent the code to the email on your device", fontSize: 17, alignment: .center, numberOfLines: 0)
+        
         let stackView = UIStackView(arrangedSubviews: [logoImage, titleLabel, detailLabel])
         stackView.axis = .vertical
         stackView.alignment = .center
@@ -114,13 +87,12 @@ class OTPverifiedViewController: UIViewController, UITextFieldDelegate {
             stackView.trailingAnchor.constraint(equalTo: mainView.trailingAnchor, constant: -20)
         ])
 
-        // OTP TextFields setup
+        // OTP TextFields Setup
         setupText(otpTextField1)
         setupText(otpTextField2)
         setupText(otpTextField3)
         setupText(otpTextField4)
 
-        // Stack view for OTP text fields
         let stackViewTextField = UIStackView(arrangedSubviews: [otpTextField1, otpTextField2, otpTextField3, otpTextField4])
         stackViewTextField.axis = .horizontal
         stackViewTextField.alignment = .center
@@ -136,21 +108,15 @@ class OTPverifiedViewController: UIViewController, UITextFieldDelegate {
             stackViewTextField.heightAnchor.constraint(equalToConstant: 50)
         ])
 
-        // Expiry label setup
-        let expireInLabel = UILabel()
+        // Expiry Label Setup
+        let expireInLabel = createLabel(text: "Code expires in:", fontSize: 13)
         mainView.addSubview(expireInLabel)
-        expireInLabel.translatesAutoresizingMaskIntoConstraints = false
-        expireInLabel.text = "Code expires in:"
-        expireInLabel.font = UIFont.systemFont(ofSize: 13)
-
-        // Number loading label
-        mainView.addSubview(numberLoading)
-        numberLoading.translatesAutoresizingMaskIntoConstraints = false
+        
         numberLoading.text = "0:00"
         numberLoading.textColor = .red
         numberLoading.font = UIFont.systemFont(ofSize: 13)
+        mainView.addSubview(numberLoading)
 
-        // Stack view for expiry labels
         let expiretimeStackView = UIStackView(arrangedSubviews: [expireInLabel, numberLoading])
         expiretimeStackView.axis = .horizontal
         expiretimeStackView.spacing = 5
@@ -163,20 +129,13 @@ class OTPverifiedViewController: UIViewController, UITextFieldDelegate {
             expiretimeStackView.centerXAnchor.constraint(equalTo: mainView.centerXAnchor)
         ])
 
-        // Resend code label setup
-        let notReceiveCode = UILabel()
-        mainView.addSubview(notReceiveCode)
-        notReceiveCode.translatesAutoresizingMaskIntoConstraints = false
-        notReceiveCode.font = UIFont.systemFont(ofSize: 13)
-        notReceiveCode.text = "Didn’t receive code?"
-
-        mainView.addSubview(resendCode)
-        resendCode.translatesAutoresizingMaskIntoConstraints = false
-        resendCode.font = UIFont.systemFont(ofSize: 13)
+        // Resend Code Label Setup
+        let notReceiveCode = createLabel(text: "Didn’t receive code?", fontSize: 13)
         resendCode.text = "Resend Code"
-        resendCode.isUserInteractionEnabled = true
+        resendCode.font = UIFont.systemFont(ofSize: 13)
         resendCode.textColor = .red
-        let codeTapGesture = UITapGestureRecognizer(target: self, action: #selector(resentCodeTapped))
+        resendCode.isUserInteractionEnabled = true
+        let codeTapGesture = UITapGestureRecognizer(target: self, action: #selector(resendCodeTapped))
         resendCode.addGestureRecognizer(codeTapGesture)
 
         let resCodeStackView = UIStackView(arrangedSubviews: [notReceiveCode, resendCode])
@@ -191,8 +150,8 @@ class OTPverifiedViewController: UIViewController, UITextFieldDelegate {
             resCodeStackView.centerXAnchor.constraint(equalTo: mainView.centerXAnchor)
         ])
 
-        // Verify button setup
-        let verifyButton = UIButton()
+        // Verify Button Setup
+        let verifyButton = UIButton(type: .system)
         verifyButton.setTitle("Verify", for: .normal)
         verifyButton.setTitleColor(.white, for: .normal)
         verifyButton.backgroundColor = UIColor(hex: "#080E1E")
@@ -222,130 +181,142 @@ class OTPverifiedViewController: UIViewController, UITextFieldDelegate {
         updateCountdownLabel()
     }
 
+    // MARK: - Helper Methods for Creating UI Components
+    func createLabel(text: String, fontSize: CGFloat, isBold: Bool = false, alignment: NSTextAlignment = .left, numberOfLines: Int = 1) -> UILabel {
+        let label = UILabel()
+        label.text = text
+        label.font = isBold ? UIFont.boldSystemFont(ofSize: fontSize) : UIFont.systemFont(ofSize: fontSize)
+        label.textAlignment = alignment
+        label.numberOfLines = numberOfLines
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }
+
+    func createLogoImageView() -> UIImageView {
+        let logoImageView = UIImageView(image: UIImage(named: "CheckYourEmail"))
+        logoImageView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            logoImageView.heightAnchor.constraint(equalToConstant: 85),
+            logoImageView.widthAnchor.constraint(equalToConstant: 55.41)
+        ])
+        return logoImageView
+    }
+
     // TextField setup method
     func setupText(_ textField: UITextField) {
         textField.translatesAutoresizingMaskIntoConstraints = false
         textField.borderStyle = .roundedRect
-        textField.font = UIFont.boldSystemFont(ofSize: 34)
+        textField.font = UIFont.boldSystemFont(ofSize: 28)
         textField.textAlignment = .center
         textField.keyboardType = .numberPad
         textField.textContentType = .oneTimeCode
+        textField.layer.cornerRadius = 12
         textField.layer.borderWidth = 1
-        textField.layer.borderColor = UIColor.black.cgColor
-        textField.layer.cornerRadius = 10
-        NSLayoutConstraint.activate([
-            textField.widthAnchor.constraint(equalToConstant: 60),
-            textField.heightAnchor.constraint(equalToConstant: 60)
-        ])
+        textField.layer.borderColor = UIColor(hex: "#080E1E").cgColor
+        textField.widthAnchor.constraint(equalToConstant: 50).isActive = true
     }
 
-    // TextField change handler
-    @objc func textFieldDidChange(_ textField: UITextField) {
-        let text = textField.text
-
-        if text?.utf16.count == 1 {
-            switch textField {
-            case otpTextField1:
-                otpTextField2.becomeFirstResponder()
-            case otpTextField2:
-                otpTextField3.becomeFirstResponder()
-            case otpTextField3:
-                otpTextField4.becomeFirstResponder()
-            case otpTextField4:
-                otpTextField4.resignFirstResponder()
-            default:
-                break
-            }
-        }
-    }
-
-    // Verify Button Tap Handler
+    // MARK: - OTP Validation
     @objc func verifyBtnTapped() {
-        let otpCode = "\(otpTextField1.text ?? "")\(otpTextField2.text ?? "")\(otpTextField3.text ?? "")\(otpTextField4.text ?? "")"
-        if otpCode.count == 4 {
-            verifyOtp(email: email, otpCode: otpCode)
-        } else {
-            showAlert(title: "Error", message: "Please enter a valid 4-digit OTP code.")
+        guard let otp1 = otpTextField1.text, let otp2 = otpTextField2.text,
+              let otp3 = otpTextField3.text, let otp4 = otpTextField4.text else {
+            showAlert(title: "Error", message: "Please fill in all OTP fields.")
+            return
         }
+        loadingViewController = LoadingViewController()
+        present(loadingViewController, animated: true)
+        let otpCode = otp1 + otp2 + otp3 + otp4
+        verifyOtp(otpCode)
     }
 
-    // OTP Verification Function
-    func verifyOtp(email: String, otpCode: String) {
-        let url = "https://travel-flame-ten.vercel.app/auth/verify"
-        let parameters: [String: Any] = [
-            "email": email,
-            "otp": otpCode
-        ]
-        print(email)
-        print(otpCode)
-        AF.request(url, method: .post, parameters: parameters, encoding: JSONEncoding.default)
-            .validate()
-            .responseDecodable(of: OTPResponse.self) { response in
-                DispatchQueue.main.async {
-                    switch response.result {
-                    case .success(let otpResponse):
-                        if otpResponse.status == 200 {
-                            self.showAlert(title: "Success", message: otpResponse.data?.message ?? "OTP verified successfully.", completion: {
-                                let viewController = RegistrationComplatedViewController()
-                                viewController.modalPresentationStyle = .fullScreen
-                                viewController.modalTransitionStyle = .coverVertical
-                                self.present(viewController, animated: true)
-                            })
+    @objc func textFieldDidChange(textField: UITextField) {
+        switch textField {
+        case otpTextField1:
+            if textField.text?.count == 1 {
+                otpTextField2.becomeFirstResponder()
+            }
+        case otpTextField2:
+            if textField.text?.count == 1 {
+                otpTextField3.becomeFirstResponder()
+            } else {
+                otpTextField1.becomeFirstResponder()
+            }
+        case otpTextField3:
+            if textField.text?.count == 1 {
+                otpTextField4.becomeFirstResponder()
+            } else {
+                otpTextField2.becomeFirstResponder()
+            }
+        case otpTextField4:
+            if textField.text?.count == 0 {
+                otpTextField3.becomeFirstResponder()
+            }
+        default:
+            break
+        }
+    }
+    // MARK: - API Calls
+    func verifyOtp(_ otpCode: String) {
+        let parameters: [String: String] = ["email": email, "otp": otpCode]
+        AF.request("\(urlLocal)auth/verify", method: .post, parameters: parameters, encoding: JSONEncoding.default).responseJSON { response in
+            self.loadingViewController.dismiss(animated: true) {
+                switch response.result {
+                case .success(let value):
+                    print("Response Data: \(value)") // Debugging output
+                    if let json = value as? [String: Any], let status = json["status"] as? Int {
+                        if status == 200 {
+                            let viewController = RegistrationComplatedViewController()
+                            viewController.modalPresentationStyle = .fullScreen
+                            self.present(viewController, animated: true)
                         } else {
-                            self.showAlert(title: "Error", message: otpResponse.message)
+                            let message = json["message"] as? String ?? "Unknown error"
+                            self.showAlert(title: "Error", message: message)
                         }
-                    case .failure(let error):
-                        self.showAlert(title: "Error", message: error.localizedDescription)
+                    } else {
+                        self.showAlert(title: "Error", message: "Invalid response format")
                     }
+                case .failure(let error):
+                    print("Request Error: \(error)") // Debugging output
+                    self.showAlert(title: "Error", message: error.localizedDescription)
                 }
             }
-    }
-
-    // Resend Code Tap Handler
-    @objc func resentCodeTapped() {
-        if numberLoading.text != "Code expired!" {
-            showAlert(title: "Error", message: "OTP code not expired yet. Please try again later.")
-        } else {
-            resendOtp(email: email)
-            resendCode.isUserInteractionEnabled = false // Disable the resend button
         }
     }
 
-    // Resend OTP Function
-    func resendOtp(email: String) {
-        let url = "https://travel-flame-ten.vercel.app/auth/resend-otp"
-        let parameters: [String: Any] = [
-            "email": email
-        ]
+    @objc func resendCodeTapped() {
+        let parameters: [String: String] = ["email": email]
         
-        AF.request(url, method: .post, parameters: parameters, encoding: JSONEncoding.default)
-            .validate()
-            .responseDecodable(of: OTPResponse.self) { response in
-                DispatchQueue.main.async {
-                    switch response.result {
-                    case .success(let otpResponse):
-                        if otpResponse.status == 200 {
-                            self.showAlert(title: "Success", message: "OTP resent successfully.")
-                            self.countdownTime = 300
-                            self.startCountdown()
-                        } else {
-                            self.showAlert(title: "Error", message: otpResponse.message)
-                        }
-                    case .failure(let error):
-                        self.showAlert(title: "Error", message: error.localizedDescription)
+        AF.request("http://localhost:3000/auth/resend-otp", method: .post, parameters: parameters, encoding: JSONEncoding.default).responseJSON { response in
+            switch response.result {
+            case .success(let value):
+                print("Response Data: \(value)") // Debugging output
+                if let json = value as? [String: Any], let status = json["status"] as? Int {
+                    if status == 200 {
+                        self.showAlert(title: "Success", message: "OTP resent successfully. Please check your email.")
+                        self.countdownTime = 300 // Reset countdown time
+                        self.startCountdown() // Restart the countdown
+                        self.resendCode.isUserInteractionEnabled = false // Disable the resend button until code expires
+                    } else {
+                        let message = json["message"] as? String ?? "Unknown error"
+                        self.showAlert(title: "Error", message: message)
                     }
-                    self.resendCode.isUserInteractionEnabled = true // Re-enable the resend button
+                } else {
+                    self.showAlert(title: "Error", message: "Invalid response format")
                 }
+            case .failure(let error):
+                print("Request Error: \(error)") // Debugging output
+                self.showAlert(title: "Error", message: error.localizedDescription)
             }
+        }
     }
 
-    // Show Alert Method
+
+    // Helper function to show alert
     func showAlert(title: String, message: String, completion: (() -> Void)? = nil) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        let okAction = UIAlertAction(title: "OK", style: .default) { _ in
+        alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { _ in
             completion?()
-        }
-        alert.addAction(okAction)
-        present(alert, animated: true, completion: nil)
+        }))
+        self.present(alert, animated: true)
     }
 }

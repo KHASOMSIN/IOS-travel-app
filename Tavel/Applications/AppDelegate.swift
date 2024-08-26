@@ -18,14 +18,17 @@ var window: UIWindow?
         
         
         let UserLogged = UserDefaults.standard.bool(forKey: "isUserLogged")
-        if UserLogged {
-            let homeViewController = HomeTabbarViewController()
-//            let navigationController = UINavigationController(rootViewController: homeViewController)
-//            homeViewController.modalPresentationStyle = .fullScreen
-//            prese
-            window?.rootViewController = homeViewController
+        let isOnboardingShown = UserDefaults.standard.bool(forKey: "isShowed")
+        if isOnboardingShown {
+            if UserLogged {
+                let homeViewController = HomeTabbarViewController()
+                window?.rootViewController = homeViewController
+            }else{
+                let viewController = LoginViewController()
+                window?.rootViewController = viewController
+            }
         }else {
-            let viewController = LoginViewController()
+            let viewController = OnboardingViewController()
             window?.rootViewController = viewController
         }
         window?.makeKeyAndVisible()

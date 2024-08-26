@@ -9,7 +9,8 @@ class ProvincesMoreViewController: UIViewController {
     private let titleLabel = UILabel()
     private var provincesMoreCollectionView: UICollectionView!
     private let moreLayout = UICollectionViewFlowLayout()
-    
+
+    private var provincces:[ProvincesModel] = []
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .white
@@ -17,6 +18,16 @@ class ProvincesMoreViewController: UIViewController {
         setConstraints()
         setupCustomBackButton()
         localizeUI() // Localize the UI elements
+        fetchProvincesData()
+    }
+    func fetchProvincesData() {
+        APIClient.shared.fetchProvinces { [weak self] (fetchedProvinces) in
+        guard let self = self, let provinces = fetchedProvinces else { return }
+            self.provincces = provinces
+            DispatchQueue.main.async {
+                self.provincesMoreCollectionView.reloadData()
+            }
+        }
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -28,6 +39,9 @@ class ProvincesMoreViewController: UIViewController {
         
         // Remove 'Back' text and Title from Navigation Bar
         self.navigationItem.backBarButtonItem = UIBarButtonItem(title: "", style: .plain, target: nil, action: nil)
+        
+        fetchProvincesData()
+        provincesMoreCollectionView.reloadData()
     }
     
     @objc func backButtonTapped() {
@@ -51,6 +65,12 @@ class ProvincesMoreViewController: UIViewController {
         contentView.addSubview(searchTextField)
         contentView.addSubview(titleLabel)
         titleLabel.font = UIFont.boldSystemFont(ofSize: 20)
+        
+        searchTextField.font = UIFont.systemFont(ofSize: 13)
+        searchTextField.backgroundColor = .white
+        searchTextField.layer.cornerRadius = 25
+        searchTextField.placeholder = "Discover a place".localized()
+        setupTextField(textField: searchTextField, withLeftIcon: UIImage(named: "search"), withRightIcon: UIImage(named: "Filter"))
         
         moreLayout.scrollDirection = .vertical
         moreLayout.minimumLineSpacing = 10
@@ -107,12 +127,14 @@ class ProvincesMoreViewController: UIViewController {
 
 extension ProvincesMoreViewController: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return 6
+        return provincces.count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "cell", for: indexPath) as! ProvincesCollectionViewCell
-        // Configure your cell here
+        let province = provincces[indexPath.row]
+        cell.configure(with: province)
+        cell.backgroundColor = .red
         return cell
     }
 }
@@ -124,6 +146,57 @@ extension ProvincesMoreViewController: UICollectionViewDelegateFlowLayout {
         let totalSpacing = (numberOfColumns - 1) * spacingBetweenCells
         let width = (collectionView.frame.width - totalSpacing) / numberOfColumns
         return CGSize(width: width, height: 270)
+    }
+}
+
+
+
+extension ProvincesMoreViewController {
+    func setupTextField(textField: UITextField, withLeftIcon leftIcon: UIImage?, withRightIcon rightIcon: UIImage?) {
+        if let leftIcon = leftIcon {
+            let leftIconView = UIImageView(frame: CGRect(x: 6, y: 0, width: 24, height: 24))
+            leftIconView.image = leftIcon
+            leftIconView.contentMode = .scaleAspectFit
+            
+            let leftIconContainerView: UIView = UIView(frame: CGRect(x: 0, y: 0, width: 40, height: 24))
+            leftIconContainerView.addSubview(leftIconView)
+            
+            textField.leftView = leftIconContainerView
+            textField.leftViewMode = .always
+        }
+        
+        if let rightIcon = rightIcon {
+            let rightIconView = UIImageView(frame: CGRect(x: 0, y: 0, width: 24, height: 24))
+            rightIconView.image = rightIcon
+            rightIconView.contentMode = .scaleAspectFit
+            
+            let rightIconContainerView: UIView = UIView(frame: CGRect(x: 0, y: 0, width: 40, height: 24))
+            rightIconContainerView.addSubview(rightIconView)
+            
+            // Add tap gesture recognizer to the right icon container view
+            let tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(rightIconTapped))
+            rightIconContainerView.isUserInteractionEnabled = true
+            rightIconContainerView.addGestureRecognizer(tapGestureRecognizer)
+            
+            textField.rightView = rightIconContainerView
+            textField.rightViewMode = .always
+        }
+        
+        textField.textAlignment = .left
+        
+        let placeholderText = textField.placeholder ?? ""
+        textField.attributedPlaceholder = NSAttributedString(
+            string: placeholderText,
+            attributes: [
+                .foregroundColor: UIColor.lightGray,
+                .paragraphStyle: NSMutableParagraphStyle().apply({
+                    $0.alignment = .left
+                })
+            ]
+        )
+    }
+    @objc func rightIconTapped(){
+        
     }
 }
 

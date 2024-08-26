@@ -1,112 +1,57 @@
 import MapKit
-import UIKit
 import CoreLocation
 
 extension ProvinceDetailViewController: CLLocationManagerDelegate {
     
-    @IBAction func mapViewTapped() {
-        
-        let urlString = "comgooglemaps://?daddr=\(latitude),\(longitude)&directionsmode=driving"
-        if let url = URL(string: urlString), UIApplication.shared.canOpenURL(url) {
-            UIApplication.shared.open(url, options: [:], completionHandler: nil)
-        } else {
-            // Fallback to Apple Maps if Google Maps is not installed
-            let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
-            let mapItem = MKMapItem(placemark: MKPlacemark(coordinate: coordinate))
-            mapItem.name = "ភូមិ ត្រពាំខ្ចៅ"
-            mapItem.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving])
+     func calculateAndDisplayDistanceAndTime() {
+        guard let userLocation = locationManager.location,
+              let destinationCoordinate = destinationCoordinate else {
+            print("User location or destination coordinate not available")
+            return
         }
-    }
-
-    func setupLocationManager() {
-        locationManager.delegate = self
-        locationManager.desiredAccuracy = kCLLocationAccuracyBest
-
-        // Request location authorization
-        locationManager.requestWhenInUseAuthorization()
-    }
-
-    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        if #available(iOS 14.0, *) {
-            switch manager.authorizationStatus {
-            case .authorizedWhenInUse, .authorizedAlways:
-                // Start updating location only when authorized
-                locationManager.startUpdatingLocation()
-            case .denied, .restricted:
-                // Show an alert if the user denied or restricted location access
-                showAlert(message: "Location access is denied or restricted. Please enable it in Settings.")
-            case .notDetermined:
-                // Request authorization again if not determined
-                locationManager.requestWhenInUseAuthorization()
-            @unknown default:
-                fatalError("Unknown authorization status")
+        
+        let startCoordinate = userLocation.coordinate
+        let distance = calculateDistance(from: startCoordinate, to: destinationCoordinate)
+        let distanceInKilometers = distance / 1000
+        kilometers.text = String(format: "Distance: %.2f Km", distanceInKilometers)
+        
+        calculateTravelTime(from: startCoordinate, to: destinationCoordinate) { time in
+            if let time = time {
+                let hours = Int(time / 3600)
+                let minutes = Int((time.truncatingRemainder(dividingBy: 3600)) / 60)
+                self.Estimated.text = "Travel time: \(hours)h \(minutes)m"
+            } else {
+                self.Estimated.text = "Travel time: can't calculate time"
             }
-        } else {
-            // Fallback on earlier versions
         }
     }
-
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let userLocation = locations.last else { return }
-        showLocation(for: userLocation.coordinate)
-        
-        // Perform distance calculation asynchronously
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            self?.calculateDistanceAndTime(from: userLocation.coordinate)
-        }
-        
-        locationManager.stopUpdatingLocation() // Stop updating to save battery
+    
+    private func calculateDistance(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D) -> CLLocationDistance {
+        let fromLocation = CLLocation(latitude: from.latitude, longitude: from.longitude)
+        let toLocation = CLLocation(latitude: to.latitude, longitude: to.longitude)
+        return fromLocation.distance(from: toLocation) // Distance in meters
     }
-
-    private func showLocation(for coordinate: CLLocationCoordinate2D) {
-        let region = MKCoordinateRegion(center: coordinate, latitudinalMeters: 1000, longitudinalMeters: 1000)
-        mapView.setRegion(region, animated: true)
+    
+    private func calculateTravelTime(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D, completion: @escaping (Double?) -> Void) {
+        let sourcePlacemark = MKPlacemark(coordinate: from)
+        let destinationPlacemark = MKPlacemark(coordinate: to)
         
-        let annotation = MKPointAnnotation()
-        annotation.coordinate = coordinate
-        annotation.title = locationame
-        mapView.addAnnotation(annotation)
-    }
-
-    private func calculateDistanceAndTime(from userCoordinate: CLLocationCoordinate2D) {
-        let destinationCoordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude) // Replace with actual destination coordinates
-
-        let userPlacemark = MKPlacemark(coordinate: userCoordinate)
-        let destinationPlacemark = MKPlacemark(coordinate: destinationCoordinate)
-
         let request = MKDirections.Request()
-        request.source = MKMapItem(placemark: userPlacemark)
+        request.source = MKMapItem(placemark: sourcePlacemark)
         request.destination = MKMapItem(placemark: destinationPlacemark)
         request.transportType = .automobile
-
+        
         let directions = MKDirections(request: request)
-        directions.calculate { [weak self] response, error in
-            guard let response = response else {
-                if let error = error {
-                    print("Error: \(error.localizedDescription)")
-                }
-                return
-            }
-            
-            let route = response.routes[0]
-            let distanceInKilometers = route.distance / 1000
-            let travelTimeInMinutes = route.expectedTravelTime / 60
-
-            // Update the UI on the main thread
-            DispatchQueue.main.async {
-                self?.Estimated.text = "Estimated Travel Time: \(String(format: "%.2f", travelTimeInMinutes)) minutes"
-                self?.kilometers.text = "Distance: \(String(format: "%.2f", distanceInKilometers)) kilometers"
+        directions.calculate { response, error in
+            if let error = error {
+                print("Error calculating directions: \(error.localizedDescription)")
+                completion(nil)
+            } else if let route = response?.routes.first {
+                completion(route.expectedTravelTime) // Travel time in seconds
+            } else {
+                print("No routes found")
+                completion(nil)
             }
         }
-    }
-
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        print("Failed to get user location: \(error.localizedDescription)")
-    }
-
-    private func showAlert(message: String) {
-        let alert = UIAlertController(title: "Location Error", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
     }
 }

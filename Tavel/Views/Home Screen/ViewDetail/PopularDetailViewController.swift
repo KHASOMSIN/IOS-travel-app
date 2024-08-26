@@ -1,6 +1,7 @@
 import UIKit
 import MapKit
 import CoreLocation
+import Kingfisher
 
 class PopularDetailViewController: UIViewController, UIScrollViewDelegate  {
     
@@ -35,15 +36,20 @@ class PopularDetailViewController: UIViewController, UIScrollViewDelegate  {
     let longitude: CLLocationDegrees = -122.3923233
     let locationame = "Kompong Speu"
     
-    
     let reviewPresentation = HalfModalTransitioningDelegate()
     var galleryCollectionViewHeightConstraint: NSLayoutConstraint!
     
-    let trip: [TripModel] = [
-        TripModel( imageName: "Angkor1"),
-        TripModel( imageName: "Angkor1"),
-        TripModel( imageName: "Angkor1"),
-    ]
+    var selectedPlace: Pupular?
+    init(selectedPlace: Pupular) {
+        self.selectedPlace = selectedPlace
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    var trip: [ImageData] = []
     let rate: [ReviewModel] = [
         ReviewModel(profileImageName: "AccountProfiles", name: "KHA SIN", rating: 5, createdDate: "12/22/2001", reviewDetail: "This place is so good"),
     ]
@@ -64,6 +70,7 @@ class PopularDetailViewController: UIViewController, UIScrollViewDelegate  {
         setupLocationView()
 //        showLocation()
         setupLocationManager()
+        populateData()
         galleryCollectionView.delegate = self
         galleryCollectionView.dataSource = self
         
@@ -72,6 +79,47 @@ class PopularDetailViewController: UIViewController, UIScrollViewDelegate  {
         
         // Show the first view by default
         segmentChanged(sender: customSegmentedControl)
+        
+        if let id = selectedPlace?.placeId {
+            fetchPlaceImage(for: id)
+        }
+    }
+    func fetchPlaceImage(for id: Int) {
+        fetchProvinceImages(for: id) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let images):
+                    self?.trip = images
+                    self?.galleryCollectionView.reloadData()
+                case .failure(let error):
+                    self?.printError(error)
+                    self?.showError(error)
+                }
+            }
+        }
+    }
+
+    private func printError(_ error: APIError) {
+        switch error {
+        case .networkError:
+            print("Network error: The device is not connected to the internet.")
+        case .serverError(let statusCode):
+            print("Server error: Received status code \(statusCode).")
+        case .decodingError:
+            print("Decoding error: Failed to decode the response.")
+        case .unknownError:
+            print("Unknown error: An unexpected error occurred.")
+        case .customError(message: let message):
+            print(message)
+        }
+    }
+
+
+    private func showError(_ error: APIError) {
+        // Handle and display the error to the user
+        let alert = UIAlertController(title: "Error", message: error.localizedDescription, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -147,6 +195,20 @@ class PopularDetailViewController: UIViewController, UIScrollViewDelegate  {
         }
     }
     
+    private func populateData(){
+        guard let urlString = selectedPlace?.imageUrl, let url = URL(string: urlString) else {
+            return
+        }
+        // Using Kingfisher to set the image
+        stretchyHeaderView.imageView.kf.setImage(with: url)
+        placeNameLbl.text = selectedPlace?.placeName
+        descriptionLbl.text = selectedPlace?.description
+        detailCaption.text = selectedPlace?.detailTitle
+        detailLabel.text = selectedPlace?.detailText
+        locationLabel.text = selectedPlace?.provinceName
+        
+    }
+    
     func createViews() {
         
         view.backgroundColor = .white
@@ -156,6 +218,7 @@ class PopularDetailViewController: UIViewController, UIScrollViewDelegate  {
         
         // Initialize and add StretchyTableHeaderView
         stretchyHeaderView = StretchyTableHeaderView()
+        
         stretchyHeaderView.imageView.image = UIImage(named: "Angkor1") // Set image
         scrollView.addSubview(stretchyHeaderView)
         
@@ -185,7 +248,6 @@ class PopularDetailViewController: UIViewController, UIScrollViewDelegate  {
         // location label
         locationLabel = UILabel()
         locationLabel.font = UIFont.systemFont(ofSize: 15)
-        locationLabel.text = "Kompong Speu"
         locationLabel.tintColor = .gray
         viewContainer.addSubview(locationLabel)
         

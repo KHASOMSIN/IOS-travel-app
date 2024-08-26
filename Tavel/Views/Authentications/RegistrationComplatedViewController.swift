@@ -90,7 +90,6 @@ class RegistrationComplatedViewController: UIViewController {
 extension RegistrationComplatedViewController{
     @IBAction func loginTapped(_ sender: UIButton){
         let loginViewController = LoginViewController()
-        loginViewController.modalTransitionStyle = .partialCurl
         loginViewController.modalPresentationStyle = .fullScreen
         self.present(loginViewController, animated: true)
         

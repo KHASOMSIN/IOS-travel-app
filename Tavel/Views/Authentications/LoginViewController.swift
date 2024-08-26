@@ -1,92 +1,6 @@
+
 import UIKit
-
-struct LoginRequest: Codable {
-    let email: String
-    let password: String
-}
-
-struct ResponseData: Codable {
-    let message: String
-    let status: Int
-    let data: ResponseDetail
-    
-    enum CodingKeys: String, CodingKey {
-        case message
-        case status
-        case data
-    }
-    
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        message = try container.decode(String.self, forKey: .message)
-        status = try container.decode(Int.self, forKey: .status)
-        
-        if status == 200 {
-            let jwtData = try container.decode(ResponseDataDetail.self, forKey: .data)
-            data = .jwt(jwtData.jwt)
-        } else {
-            let errorData = try container.decode(ErrorData.self, forKey: .data)
-            data = .error(errorData)
-        }
-    }
-    
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(message, forKey: .message)
-        try container.encode(status, forKey: .status)
-        
-        switch data {
-        case .jwt(let jwtData):
-            try container.encode(jwtData, forKey: .data)
-        case .error(let errorData):
-            try container.encode(errorData, forKey: .data)
-        }
-    }
-}
-
-struct ResponseDataDetail: Codable {
-    let jwt: JWTData
-    
-    enum CodingKeys: String, CodingKey {
-        case jwt = "jwt"
-    }
-}
-
-enum ResponseDetail {
-    case jwt(JWTData)
-    case error(ErrorData)
-}
-
-struct JWTData: Codable {
-    let accessToken: String
-    let tokenType: String
-    let expiresIn: Int
-    
-    enum CodingKeys: String, CodingKey {
-        case accessToken = "access_token"
-        case tokenType = "token_type"
-        case expiresIn = "expires_in"
-    }
-}
-
-struct ErrorData: Codable {
-    let message: String
-    
-    enum CodingKeys: String, CodingKey {
-        case message
-    }
-}
-
-struct ErrorResponse: Codable {
-    let message: String
-    let status: Int
-    let data: ErrorData?
-
-    struct ErrorData: Codable {
-        let password: [String]?
-        let email: [String]?
-    }
-}
+import Alamofire
 
 class LoginViewController: UIViewController {
     let scrollView = UIScrollView()
@@ -418,101 +332,48 @@ class LoginViewController: UIViewController {
             print("Sign up")
         }
     
-        @IBAction func loginBtnTapped(_ sender: Any) {
-            guard let email = emailTextField.text, !email.isEmpty,
-                  let password = passwordTextField.text, !password.isEmpty else {
-                showAlert(title: "Error", message: "Please enter both email and password.")
-                
-                return
-            }
-            let loadingiewController = LoadingViewController()
-            present(loadingiewController, animated: true)
-            login(email: email, password: password)
+    @IBAction func loginBtnTapped(_ sender: Any) {
+        guard let email = emailTextField.text, !email.isEmpty,
+              let password = passwordTextField.text, !password.isEmpty else {
+            showAlert(title: "Error", message: "Please enter both email and password.")
+            return
         }
+
+        let loadingViewController = LoadingViewController()
+        present(loadingViewController, animated: true)
         
-        private func login(email: String, password: String) {
-            let url = URL(string: "http://localhost:3000/auth/login")!
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.timeoutInterval = 30.0
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            
-            let bodyData = ["email": email, "password": password]
-            request.httpBody = try? JSONSerialization.data(withJSONObject: bodyData, options: [])
-            
-            let urlSession = URLSession(configuration: .ephemeral)
-            let task = urlSession.dataTask(with: request) { data, response, error in
-                DispatchQueue.main.async {
-                    self.dismiss(animated: true) {
-                        if let error = error {
-                            self.showAlert(title: "Error", message: error.localizedDescription)  
-                            return
-                        }
-                        guard let httpResponse = response as? HTTPURLResponse else {
-                            self.showAlert(title: "Error", message: "Invalid response from server.")
-                            return
-                        }
-                        if httpResponse.statusCode == 401 {
-                            self.showAlert(title: "Error", message: "Unauthorized request.")
-                            return
-                        } else if httpResponse.statusCode == 422 {
-                            guard let data = data else {
-                                self.showAlert(title: "Error", message: "No data received.")
-                                return
-                            }
-                            do {
-                                let errorResponse = try JSONDecoder().decode(ErrorResponse.self, from: data)
-                                DispatchQueue.main.async {
-                                    if let passwordErrors = errorResponse.data?.password {
-                                        let errorMessage = passwordErrors.joined(separator: "\n")
-                                        self.showAlert(title: "Error", message: errorMessage)
-                                    } else if let emailErrors = errorResponse.data?.email {
-                                        let errorMessage = emailErrors.joined(separator: "\n")
-                                        self.showAlert(title: "Error", message: errorMessage)
-                                    } else {
-                                        self.showAlert(title: "Error", message: "Validation error: \(errorResponse.message)")
-                                    }
-                                }
-                            } catch {
-                                DispatchQueue.main.async {
-                                    self.showAlert(title: "Error", message: error.localizedDescription)
-                                }
-                            }
-                            return
-                        }
-                        guard let data = data else {
-                            DispatchQueue.main.async {
-                                self.showAlert(title: "Error", message: "No data received.")
-                            }
-                            return
-                        }
+        let login: [String: Any] = ["email": email, "password": password]
+        let url = "\(urlTravel)auth/login"
+        
+        AF.request(url, method: .post, parameters: login, encoding: JSONEncoding.default)
+            .responseDecodable(of: LoginResponse.self) { response in
+                loadingViewController.dismiss(animated: true) {
+                    switch response.result {
+                    case .success(let loginResponse):
+                        // Access the decoded LoginResponse object
+                        print("Message: \(loginResponse.message)")
+                        print("Status: \(loginResponse.status)")
+                        print("Access Token: \(loginResponse.data.jwt.accessToken)")
                         
-                        do {
-                            let responseData = try JSONDecoder().decode(ResponseData.self, from: data)
-                            DispatchQueue.main.async {
-                                
-                                switch responseData.data {
-                                
-                                case .jwt(_):
-                                    UserDefaults.standard.set(true, forKey: "isUserLogged")
-                                    let viewController = HomeTabbarViewController()
-                                    viewController.modalTransitionStyle = .coverVertical
-                                    viewController.modalPresentationStyle = .fullScreen
-                                    self.present(viewController, animated: true)
-                                case .error(let errorData):
-                                    self.showAlert(title: "Error", message: errorData.message)
-                                }
-                            }
-                        } catch let decodingError {
-                            DispatchQueue.main.async {
-                                self.showAlert(title: "Error", message: decodingError.localizedDescription)
-                            }
+                        UserDefaults.standard.set(true, forKey: "isUserLogged")
+                    if let accessTokenData = loginResponse.data.jwt.accessToken.data(using: .utf8) {
+                        let success = KeychainHelper.save(key: "accessToken", data: accessTokenData)
+                        if success {
+                            let viewController = HomeTabbarViewController()
+                            viewController.modalTransitionStyle = .coverVertical
+                            viewController.modalPresentationStyle = .fullScreen
+                            self.present(viewController, animated: true)
                         }
                     }
+                case .failure(let error):
+                    // Handle the error scenario
+                    print("Error: \(error.localizedDescription)")
+                    self.showAlert(title: "Login Failed", message: "Please check your credentials and try again.")
                 }
             }
-            task.resume()
         }
+    }
+
         
     @objc func withFacebook() {
             print("login with facebook")

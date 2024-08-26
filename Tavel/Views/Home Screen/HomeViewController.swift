@@ -1,7 +1,8 @@
 import UIKit
 import CoreData
 import SnapKit
-
+import Localize_Swift
+import Alamofire
 class HomeViewController: UIViewController {
     
     // MARK: Properties
@@ -32,16 +33,11 @@ class HomeViewController: UIViewController {
     let categoriesButton = UIView()
     var stackViewFilter: UIStackView!
     
-    let provinces: [ProvincesModel] = [
-        ProvincesModel(title: "Battambang", killometter: 46, nationalState: "5,6", imageName: "Battambang"),
-        ProvincesModel(title: "Kompot", killometter: 100, nationalState: "4,3", imageName: "Angkor3"),
-        ProvincesModel(title: "Kompong Speu", killometter: 46, nationalState: "5,6", imageName: "a"),
-        ProvincesModel(title: "Kompot", killometter: 100, nationalState: "4,3", imageName: "Angkor1"),
-        ProvincesModel(title: "Kompong Speu", killometter: 46, nationalState: "5,6", imageName: "a"),
-        ProvincesModel(title: "Kompot", killometter: 100, nationalState: "4,3", imageName: "Angkor3")
-    ]
-    let imageNames = ["Angkor3", "Angkor1", "Angkor3", "Angkor1", "a"]
-    let categorie =  ["Angkor1","Angkor1","Angkor1"]
+    var refreshControl = UIRefreshControl()
+    
+    var provinces: [ProvincesModel] = []
+    var places: [Pupular] = []
+    var categories: [Category] = []
     var itemWidth: CGFloat {
         return screenWidth * 0.4
     }
@@ -69,7 +65,76 @@ class HomeViewController: UIViewController {
         setupCollectionView()
         setupUI()
         scrollView.delegate = self
+        fetchProvincesData()
+        updateWelcomeMessage()
+        fetchPlaces()
+        refreshData()
+        setupRefreshControl()
+        fetchCategories()
         
+        APIClient.shared.fetchProvinces { provinces in
+            if let provinces = provinces {
+                // Use the provinces array here
+                print("Provinces fetched: \(provinces)")
+            } else {
+                // Handle the error
+                print("Failed to fetch provinces")
+            }
+        }
+        
+    }
+
+    func fetchCategories() {
+        let url = "\(urlLocal)travel/categories"
+        
+        AF.request(url).responseDecodable(of: CategoriesResponse.self) { response in
+            switch response.result {
+            case .success(let result):
+                self.categories = result.categories
+                self.CategoriesCollectionView.reloadData() // Reload collection view
+            case .failure(let error):
+                print("Failed to fetch categories: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    private func setupRefreshControl() {
+        refreshControl.addTarget(self, action: #selector(refreshData), for: .valueChanged)
+    }
+
+    @objc private func refreshData() {
+            // Fetch new data
+        fetchPlaces()
+        fetchProvincesData()
+            
+    }
+
+    
+    private func fetchPlaces() {
+           APIPupular.shared.fetchPlaces { result in
+               switch result {
+               case .success(let places):
+                   self.places = places
+                   DispatchQueue.main.async {
+                       self.popularCollectionView.reloadData()
+                       self.refreshControl.endRefreshing()
+                   }
+               case .failure(let error):
+                   print("Failed to fetch places: \(error)")
+                   self.refreshControl.endRefreshing()
+               }
+           }
+       }
+    
+    func fetchProvincesData() {
+        APIClient.shared.fetchProvinces { [weak self] (fetchedProvinces) in
+        guard let self = self, let provinces = fetchedProvinces else { return }
+            self.provinces = provinces
+            DispatchQueue.main.async {
+                self.provincesCollectionView.reloadData()
+                self.refreshControl.endRefreshing()
+            }
+        }
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -87,17 +152,31 @@ class HomeViewController: UIViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        
+        // Ensure the collection view has data before trying to scroll
+        let numberOfItems = provincesCollectionView.numberOfItems(inSection: 0)
         let indexPath = IndexPath(item: 1, section: 0)
-        provincesCollectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: true)
         
-        provincesLayout.currentPage = indexPath.item
-        provincesLayout.previousOffset = provincesLayout.updateOffSet(provincesCollectionView)
-        
-        if let cell = provincesCollectionView.cellForItem(at: indexPath) {
-            transformCell(cell)
+        if indexPath.item < numberOfItems {
+            // Scroll to the item safely
+            provincesCollectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: true)
+            
+            // Update layout properties
+            provincesLayout.currentPage = indexPath.item
+            provincesLayout.previousOffset = provincesLayout.updateOffSet(provincesCollectionView)
+            
+            // Ensure the cell is visible before trying to transform it
+            if let cell = provincesCollectionView.cellForItem(at: indexPath) {
+                transformCell(cell)
+            }
+        } else {
+            print("IndexPath item \(indexPath.item) is out of bounds. Number of items in section: \(numberOfItems)")
         }
+        
+        // Reload data for the popular collection view
         popularCollectionView.reloadData()
     }
+
 
     func setupCollectionView() {
         
@@ -128,7 +207,23 @@ class HomeViewController: UIViewController {
         provincesCollectionView.register(ProvincesCollectionViewCell.self, forCellWithReuseIdentifier: "Cell2")
         setupCollectionView(provincesCollectionView)
     }
-    
+    private func updateWelcomeMessage() {
+            let hour = Calendar.current.component(.hour, from: Date())
+            var welcomeText = ""
+            
+            switch hour {
+            case 6..<12:
+                welcomeText = "Good Morning!".localized()
+            case 12..<18:
+                welcomeText = "Good Afternoon!".localized()
+            case 18..<22:
+                welcomeText = "Good Evening!".localized()
+            default:
+                welcomeText = "Good Night!".localized()
+            }
+            
+        welcomeLael.text = welcomeText
+    }
     func setupUI() {
 
         
@@ -196,7 +291,7 @@ class HomeViewController: UIViewController {
         accountNameLabel.textColor = UIColor(hex: "64646E")
         
         // Set label welcome
-        welcomeLael.text = "Good Morning!"
+//        welcomeLael.text = "Good Morning!".localized()
         welcomeLael.font = UIFont.systemFont(ofSize: 20)
         welcomeLael.textColor = .black
         welcomeLael.translatesAutoresizingMaskIntoConstraints = false
@@ -222,8 +317,11 @@ class HomeViewController: UIViewController {
         searchTextField.font = UIFont.systemFont(ofSize: 13)
         searchTextField.backgroundColor = .white
         searchTextField.layer.cornerRadius = 25
-        searchTextField.placeholder = "Discover a place"
+        searchTextField.placeholder = "Discover a place".localized()
         setupTextField(textField: searchTextField, withLeftIcon: UIImage(named: "search"), withRightIcon: UIImage(named: "Filter"))
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleSearchFieldTap))
+        searchTextField.addGestureRecognizer(tapGesture)
+        searchTextField.isUserInteractionEnabled = true
         NSLayoutConstraint.activate([
             searchTextField.topAnchor.constraint(equalTo: stackViewTop.bottomAnchor, constant: 20),
             searchTextField.leadingAnchor.constraint(equalTo: mainView.leadingAnchor, constant: 20),
@@ -235,7 +333,7 @@ class HomeViewController: UIViewController {
         setupButton(popularButton, title: "Popular")
         setupButton(mostViewButton, title: "Most View")
         setupButton(recomendedButton, title: "Recomended")
-        popularButton.addTarget(self, action: #selector(popularTapped), for: .touchUpInside)
+//        popularButton.addTarget(self, action: #selector(popularTapped), for: .touchUpInside)
         
         stackViewFilter = UIStackView(arrangedSubviews: [popularButton, mostViewButton, recomendedButton])
         stackViewFilter.axis = .horizontal
@@ -268,7 +366,7 @@ class HomeViewController: UIViewController {
         ])
         // MARK: Title and more button
         let firstTitleLabel = UILabel()
-        firstTitleLabel.text = "Popular Places"
+        firstTitleLabel.text = "Popular Places".localized()
         setupTitle(firstTitleLabel)
         viewContainerPopulars.addSubview(firstTitleLabel)
         
@@ -308,7 +406,7 @@ class HomeViewController: UIViewController {
         
         // show provinces
         let provinces = UILabel()
-        provinces.text = "Provinces"
+        provinces.text = "Provinces".localized()
         setupTitle(provinces)
         viewContainerProvinces.addSubview(provinces)
         
@@ -356,7 +454,7 @@ class HomeViewController: UIViewController {
         categorieLayout.scrollDirection = .horizontal
         CategoriesCollectionView = UICollectionView(frame: .zero, collectionViewLayout: categorieLayout)
         CategoriesCollectionView.contentInset = UIEdgeInsets(top: 50.0, left: 55.0, bottom: 50.0, right: 50.0)
-        CategoriesCollectionView.register(CategoriesCollectionViewCell.self, forCellWithReuseIdentifier: "Cell3")
+        CategoriesCollectionView.register(ProvincesCategoryCollectionViewCell.self, forCellWithReuseIdentifier: "Cell3")
         setupCollectionView(CategoriesCollectionView)
         
         viewContainerCategory.translatesAutoresizingMaskIntoConstraints = false
@@ -373,7 +471,7 @@ class HomeViewController: UIViewController {
         
         // title of Categories
         let titleCategory = UILabel()
-        titleCategory.text = "Categories"
+        titleCategory.text = "Categories".localized()
         setupTitle(titleCategory)
         viewContainerCategory.addSubview(titleCategory)
         viewContainerCategory.addSubview(CategoriesCollectionView)
@@ -391,14 +489,14 @@ class HomeViewController: UIViewController {
         ])
         
     }
-    @objc func popularTapped(){
-        categoriesButton.isHidden = false
-        categoriesButton.snp.makeConstraints { make in
-            make.top.equalTo(stackViewFilter.snp.bottom)
-            make.left.right.equalTo(mainView)
-            make.bottom.equalTo(mainView)
-        }
-    }
+//    @objc func popularTapped(){
+//        categoriesButton.isHidden = false
+//        categoriesButton.snp.makeConstraints { make in
+//            make.top.equalTo(stackViewFilter.snp.bottom)
+//            make.left.right.equalTo(mainView)
+//            make.bottom.equalTo(mainView)
+//        }
+//    }
     @objc func provincesMoreTapped(){
         let viewController = ProvincesMoreViewController()
         navigationController?.pushViewController(viewController, animated: true)
@@ -420,7 +518,7 @@ class HomeViewController: UIViewController {
     func setupMoreButton (_ button: UIButton){
         button.setTitleColor(.black, for: .normal)
         button.titleLabel?.font = UIFont.systemFont(ofSize: 14)
-        button.setTitle("More", for: .normal)
+        button.setTitle("More".localized(), for: .normal)
         button.translatesAutoresizingMaskIntoConstraints = false
     }
     @objc func moreButtonTapped(){
@@ -443,6 +541,24 @@ class HomeViewController: UIViewController {
         button.titleLabel?.font = UIFont.systemFont(ofSize: 15)
         button.heightAnchor.constraint(equalToConstant: 50).isActive = true
         button.addTarget(self, action: #selector(buttonTapped(_:)), for: .touchUpInside)
+    }
+    
+    @objc func handleSearchFieldTap() {
+        print("Search text field tapped")
+
+        // Animate the scale of the searchTextField
+        UIView.animate(withDuration: 0.3, animations: {
+            self.searchTextField.transform = CGAffineTransform(scaleX: 1.05, y: 1.05)
+        }) { _ in
+            // Animate back to original scale
+            UIView.animate(withDuration: 0.3, animations: {
+                self.searchTextField.transform = CGAffineTransform.identity
+            }) { _ in
+                // Present the SearchViewController after the animation completes
+                let searchVC = SearchViewController()
+                self.navigationController?.pushViewController(searchVC, animated: true)
+            }
+        }
     }
     
     @objc func buttonTapped(_ sender: UIButton) {
@@ -520,16 +636,16 @@ extension HomeViewController : UICollectionViewDataSource {
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         if collectionView == popularCollectionView {
-            return popularPlace.count
+            return places.count
         }else if collectionView == provincesCollectionView {
             return provinces.count
         }else{
-            return categorie.count
+            return categories.count
         }
     }
-    private func handleBookmarkButtonTapped(for trip: PopularPlace, at indexPath: IndexPath) {
-        if BookmarkManager.shared.isBookmarked(id: trip.id) {
-            BookmarkManager.shared.removeBookmark(byId: trip.id)
+    private func handleBookmarkButtonTapped(for trip: Pupular, at indexPath: IndexPath) {
+        if BookmarkManager.shared.isBookmarked(id: "\(trip.placeId)") {
+            BookmarkManager.shared.removeBookmark(byId: "\(trip.placeId)")
         } else {
             BookmarkManager.shared.saveBookmark(trip)
         }
@@ -541,37 +657,25 @@ extension HomeViewController : UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         if collectionView == popularCollectionView {
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "Cell1", for: indexPath) as! FirstCollectionViewCell
-            let place = popularPlace[indexPath.item]
+            let place = places[indexPath.item]
             cell.configure(with: place)
             
             cell.bookmarkButtonAction = {[weak self] in
                 self?.handleBookmarkButtonTapped(for: place, at: indexPath)
             }
-//            if let imageName = place.imageName {
-//                cell.imageView.image = UIImage(named: imageName)
-//            }
-//            cell.titleLabel.text = place.title
-//            cell.descriptionLabel.text = place.description
-
-//            let trip = trips[indexPath.row]
-//            cell.configure(with: trip)
-//            cell.bookmarkButtonAction = { [weak self] in
-//                self?.handleBookmarkButtonTapped(for: trip, at: indexPath)
-//            }
-//            return cell
             
             return cell
         }else if collectionView == provincesCollectionView {
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "Cell2", for: indexPath) as! ProvincesCollectionViewCell
             let province = provinces[indexPath.item]
-            
-            cell.imageView.image = UIImage(named: province.imageName ?? "defaultImage")
-            cell.titleLabel.text = province.title
+            cell.backgroundColor = .white
+            cell.configure(with: province)
             
             return cell
         }else {
-            let cell3 = collectionView.dequeueReusableCell(withReuseIdentifier: "Cell3", for: indexPath) as! CategoriesCollectionViewCell
-            cell3.imageView.image = UIImage(named: categorie[indexPath.item])
+            let cell3 = collectionView.dequeueReusableCell(withReuseIdentifier: "Cell3", for: indexPath) as! ProvincesCategoryCollectionViewCell
+            let category = categories[indexPath.item]
+            cell3.configure(with: category)
             return cell3
         }
     }
@@ -586,7 +690,9 @@ extension HomeViewController: UICollectionViewDelegate {
         if collectionView == provincesCollectionView {
             if indexPath.item == provincesLayout.currentPage {
                 print("did select item cell")
+                let selectedId = provinces[indexPath.item]
                 let provincesDetailView = ProvinceDetailViewController()
+                provincesDetailView.provincId = selectedId.provinceId
                 navigationController?.pushViewController(provincesDetailView, animated: true)
             } else {
                 provincesCollectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: true)
@@ -597,7 +703,11 @@ extension HomeViewController: UICollectionViewDelegate {
             }
         } else if collectionView == popularCollectionView {
             print("it work")
-            let detailViewController = PopularDetailViewController()
+            let selected = places[indexPath.item]
+            let detailViewController = PopularDetailViewController(selectedPlace: selected)
+            detailViewController.selectedPlace = selected
+            
+            
             navigationController?.pushViewController(detailViewController, animated: true)
             
         }else {
@@ -653,7 +763,7 @@ extension HomeViewController: UICollectionViewDelegateFlowLayout {
         }else if collectionView == provincesCollectionView{
             return CGSize(width: itemWidth, height: itemHeight)
         }else {
-            return CGSize(width: 100, height: 100)
+            return CGSize(width: 100, height: 130)
         }
     }
 }

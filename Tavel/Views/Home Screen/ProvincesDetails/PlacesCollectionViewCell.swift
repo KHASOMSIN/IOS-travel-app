@@ -7,7 +7,7 @@ class PlacesCollectionViewCell: UICollectionViewCell {
     private let backView = UIView()
     private let detailLabel = UILabel()
     private let locationIcon = UIImageView()
-    private let locationLabel = UILabel()
+    let locationLabel = UILabel()
     private let backgroundViewContainer = UIView()
     
     override init(frame: CGRect) {
@@ -37,6 +37,7 @@ class PlacesCollectionViewCell: UICollectionViewCell {
         
         locationIcon.contentMode = .scaleAspectFit
         backView.addSubview(locationIcon)
+        locationIcon.image = UIImage(named: "Location")
         
         locationLabel.font = UIFont.systemFont(ofSize: 13)
         backView.addSubview(locationLabel)
@@ -89,12 +90,13 @@ class PlacesCollectionViewCell: UICollectionViewCell {
             make.bottom.equalTo(backView.snp.bottom).offset(-5)
         }
     }
-    
-    func configure(with model: placeModel) {
-        titleLabel.text = model.title
-        locationIcon.image = UIImage(named: model.locationIconName)
-        locationLabel.text = model.locationName
-        detailLabel.text = model.detail
-        imageView.image = UIImage(named: model.galleryName)
+
+    func configure(with place: Pupular) {
+        titleLabel.text = place.placeName
+        detailLabel.text = place.description
+        locationLabel.text = place.provinceName
+        if let url = URL(string: place.imageUrl) {
+            imageView.kf.setImage(with: url)
+        }
     }
 }
